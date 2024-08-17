@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login and Student Selection</title>
+    <link rel="stylesheet" href="styles.css"> 
+</head>
+<body>
+    <div class="container">
+        <!-- Admin Login Form -->
+        <div id="login-container" class="login-form">
+            <h2 class="heading">कर्मवीर भाऊराव पाटील कमवा व शिका योजना</h2>
+            <img src="patil.jpeg" alt="Patil" class="rounded-circle">
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username"><h5>Username</h5></label>
+                    <input type="text" class="form-control" id="username" placeholder="Enter username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password"><h5>Password</h5></label>
+                    <input type="password" class="form-control" id="password" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+        </div>
+
+        <!-- Student Selection and Details Form -->
+        <div id="student-select-container" class="student-select" style="display: none;">
+            <h2 class="heading">कर्मवीर भाऊराव पाटील कमवा व शिका योजना</h2>
+            <img src="patil.jpeg" alt="Patil" class="rounded-circle">
+        
+            <select id="student-select" class="form-control">
+                <option value="" selected>Select a student</option>
+            </select>
+            
+            <!-- Date and Time Selection -->
+            <form id="details-form" class="details-form">
+                <div class="form-group">
+                    <label for="date">Select Date</label>
+                    <input type="date" class="form-control" id="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="in-time">In Time</label>
+                    <input type="time" class="form-control" id="in-time" required>
+                </div>
+                <div class="form-group">
+                    <label for="out-time">Out Time</label>
+                    <input type="time" class="form-control" id="out-time" required>
+                </div>
+                <div class="form-group">
+                    <label for="total-hours">Total Hours</label>
+                    <input type="text" class="form-control" id="total-hours" readonly>
+                </div>
+                <button type="submit" class="btn btn-success">Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginContainer = document.getElementById('login-container');
+            const studentSelectContainer = document.getElementById('student-select-container');
+            const loginForm = document.getElementById('login-form');
+            const studentSelect = document.getElementById('student-select');
+            const inTimeInput = document.getElementById('in-time');
+            const outTimeInput = document.getElementById('out-time');
+            const totalHoursInput = document.getElementById('total-hours');
+            const dateInput = document.getElementById('date');
+            const detailsForm = document.getElementById('details-form');
+
+            // Handle login
+            loginForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (username === '123' && password === '111') {
+                    loginContainer.style.display = 'none'; // Hide the login form
+                    studentSelectContainer.style.display = 'flex'; // Show the student select container
+                    loadStudents();
+                } else {
+                    alert('Invalid credentials');
+                }
+            });
+
+            function loadStudents() {
+                fetch('/students')
+                    .then(response => response.json())
+                    .then(data => {
+                        studentSelect.innerHTML = '<option value="" selected>Select a student</option>'; // Reset options
+                        data.forEach(name => {
+                            const option = document.createElement('option');
+                            option.value = name;
+                            option.textContent = name;
+                            studentSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching students:', error);
+                    });
+            }
+
+            // Function to calculate total hours
+            function calculateTotalHours() {
+                const inTime = inTimeInput.value;
+                const outTime = outTimeInput.value;
+
+                if (inTime && outTime) {
+                    const [inHours, inMinutes] = inTime.split(':').map(Number);
+                    const [outHours, outMinutes] = outTime.split(':').map(Number);
+
+                    let startTime = inHours * 60 + inMinutes;
+                    let endTime = outHours * 60 + outMinutes;
+
+                    // If end time is before start time, add 24 hours (1440 minutes) to end time
+                    if (endTime < startTime) {
+                        endTime += 1440; // Adding 24 hours
+                    }
+
+                    let totalMinutes = endTime - startTime;
+                    let totalHours = Math.floor(totalMinutes / 60);
+                    
+                    totalHoursInput.value = totalHours;
+                } else {
+                    totalHoursInput.value = '';
+                }
+            }
+
+            // Save data to server
+            function saveData() {
+                const studentName = studentSelect.value;
+                const date = dateInput.value;
+                const inTime = inTimeInput.value;
+                const outTime = outTimeInput.value;
+                const totalHours = totalHoursInput.value;
+
+                if (studentName && date && inTime && outTime && totalHours) {
+                    fetch('/save', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ studentName, date, inTime, outTime, totalHours }),
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        console.log(data);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                }
+            }
+
+            // Add event listeners to recalculate total hours and save data
+            inTimeInput.addEventListener('change', function() {
+                calculateTotalHours();
+                saveData();
+            });
+            outTimeInput.addEventListener('change', function() {
+                calculateTotalHours();
+                saveData();
+            });
+            dateInput.addEventListener('change', saveData);
+            studentSelect.addEventListener('change', saveData);
+
+            // Handle form submission
+            detailsForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveData();
+            });
+        });
+    </script>
+</body>
+</html>
